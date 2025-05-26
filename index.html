@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -153,11 +152,6 @@
       dateInput.value = today;
     }
 
-    function loadTransactions() {
-      const data = localStorage.getItem(STORAGE_KEY);
-      transactions = data ? JSON.parse(data) : [];
-    }
-
     function saveTransactions() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
     }
@@ -249,10 +243,34 @@
       setDarkMode(darkModeSetting === 'true');
     }
 
-    loadTransactions();
-    renderTransactions();
-    setDefaultDate();
-    loadDarkModeSetting();
+    async function loadFromGoogleSheets() {
+      try {
+        const res = await fetch('https://script.google.com/macros/s/AKfycbyHKD-xVCYPlx4407nt84v0itcFkgUgvc5gjZ6wuREZYzklCxmThKWielA4ID6cZtFLQA/exec');
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          transactions = data.map(row => ({
+            date: row.Ngay,
+            type: row.Loai === 'Thu nhập' ? 'income' : 'expense',
+            desc: row.GhiChu,
+            amount: parseFloat(row.SoTien)
+          }));
+          saveTransactions();
+          renderTransactions();
+        } else {
+          console.error('Dữ liệu không hợp lệ:', data);
+        }
+      } catch (err) {
+        console.error('Không thể tải dữ liệu từ Google Sheets:', err);
+      }
+    }
+
+    async function main() {
+      await loadFromGoogleSheets();
+      setDefaultDate();
+      loadDarkModeSetting();
+    }
+
+    main();
   </script>
 </body>
 </html>
